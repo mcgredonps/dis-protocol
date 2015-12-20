@@ -63,7 +63,7 @@
     <classRef name="SimulationAddress"/>
   </attribute>
   
- <attribute name="aggregateID" comment="the aggregate ID">
+ <attribute name="aggregateID" comment="the aggregate ID, an object identifier">
    <primitive type="unsigned short"/>
  </attribute>
  
@@ -110,7 +110,7 @@
         <primitive type="unsigned byte"/>
     </attribute>
     
-    <attribute name="extra">
+    <attribute name="extra" comment="extra information needed to describe the aggregate">
         <primitive type="unsigned byte"/>
     </attribute>
     
@@ -223,7 +223,7 @@
       <primitive type="unsigned int"/>
     </attribute>
 
-    <attribute name="recordLength" commment="Total length of the record in octets. The record shall end on a 64-bit boundary after any padding. = 6 + K + P">
+    <attribute name="recordLength" commment="Total length of the record in octets. The record shall end on a 64-bit boundary after any padding. = 6 + K + P, where K is the total length of records and P is padding, and 6 is the integer + short">
       <primitive type="unsigned short"/>
     </attribute>
 
@@ -232,7 +232,7 @@
     </attribute>
 
 <!--
-     <attribute name="paddingTo64Bits" commment="Padding necessary to put the end of the record on a 64 bit boundary">
+     <attribute name="paddingTo64Bits" commment="Variable length padding necessary to put the end of the record on a 64 bit boundary">
       <primitive type="unsigned long"/>
     </attribute>
     -->
@@ -274,20 +274,25 @@
 <class name="BeamStatus" inheritsFrom="root" comment="Information related to the status of a beam. This is contained in the beam status field of the electromagnitec emission PDU. The first bit determines whether the beam is active (0) or deactivated (1). Section 6.2.12.">
 
  <attribute name="beamState" comment="First bit zero means beam is active, first bit = 1 means deactivated. The rest is padding.">
-      <primitive type="unsigned byte"/>
-    </attribute>
+      <primitive type="unsigned byte"
+      <flags>
+        <flag mask="0x1" name="beamState" comment="0 active, 1 deactivated"/>
+        <flag mask="0xFE" name="padding" comment="padding"/>
+      </flags>
+      </primitive>
+ </attribute>
     
 </class>
 
 <class name="ClockTime" inheritsFrom="root" 
           comment="Time measurements that exceed one hour are represented by this record. The first field is the hours since the unix epoch (Jan 1 1970, used by most Unix systems and java) and the second field the timestamp units since the top of the hour. Section 6.2.14">
  
- <attribute name="hour" comment="Hours in UTC">
+ <attribute name="hour" comment="Hours since midnight, 1970, UTC">
    <primitive type="unsigned int"/>
  </attribute>
  
- <attribute name="timePastHour" comment="Time past the hour">
-   <primitive type="unsigned int"/>
+ <attribute name="timePastHour" comment="Time past the hour, in timestamp form">
+   <classRef type="Timestamp"/>
  </attribute>
  
  </class>
@@ -351,7 +356,22 @@
  <class name="DataFilterRecord" comment="identify which of the optional data fields are contained in the Minefield Data PDU or requested in the Minefield Query PDU. This is a 32-bit record. For each field, true denotes that the data is requested or present and false denotes that the data is neither requested nor present. Section 6.2.16">
      
      <attribute name="bitFlags" comment="Bitflags field">
-         <primitive type="unsigned int" comment="Bit flags for fields"/>
+         <primitive type="unsigned int" comment="Bit flags for fields">
+             <flags>
+                 <flag mask="0x1" name="groundBurialDepthOffset" comment="boolean"/>
+                 <flag mask="0x2" name="waterBurialDepthOffset" comment="boolean"/>
+                 <flag mask="0x4" name="snowBurialDepthOffset" comment="boolean"/>
+                 <flag mask="0x8" name="mineOrientation" comment="boolean"/>
+                 <flag mask="0x10" name="thermalContrast" comment="boolean"/>
+                 <flag mask="0x20" name="reflectance" comment="boolean"/>
+                 <flag mask="0x40" name="mineEmplacementTime" comment="boolean"/>
+                 <flag mask="0x80" name="tripDetonationWire" comment="boolean"/>
+                 <flag mask="0x100" name="fusing" comment="boolean"/>
+                 <flag mask="0x200" name="scalarDetectionCoefficient" comment="boolean"/>
+                 <flag mask="0x400" name="paintScheme" comment="boolean"/>
+                 <flag mask="0xff800" name="padding" comment="padding"/>
+             </flags>
+         </primitive>
      </attribute>
      
  </class>
@@ -2287,7 +2307,7 @@
 
   </class>
 
-  <!-- Section 6.2.87 Absolute timestamps are used when clocks on hosts are synced, perhaps via NTP.
+  <!-- Section 6.2.88 Absolute timestamps are used when clocks on hosts are synced, perhaps via NTP.
   Absolute timestamps have the LSB set to 1. Contents are the system clock time when the data was valid.
 
   Relative timestamps are used when hosts are not synchronized. Each hosts keeps track from an arbitrary
@@ -2295,6 +2315,15 @@
 
   Scale is one hour divided by 2^31-1, about 1.676 microseconds
   -->
+ <class name="Timestamp" comment="LSB is absolute or relative timestamp. Scale is 2^31 - 1 divided into one hour.">
+   <attribute name="timestamp" comment="timestamp">
+       <primitive type="integer">
+        <flags>
+          <flag mask="0x1" name="timestampType" comment="0 relative timestamp, 1 host synchronized timestamp"/>
+          <flag mask="0xFE" name="timestampValue" comment="2^31-1 per hour time units"/>
+        </primitive>
+   </attribute>
+</class>      
 
 <class name="TotalRecordSets" inheritsFrom="root" comment="Total number of record sets contained in a logical set of one or more PDUs. Used to transfer ownership, etc Section 6.2.88">
 
